@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuriGeo</title>
+    <meta name="author" content="David Grzyb">
+    <meta name="description" content="">
+
+    <!-- Tailwind -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Karla:400,700&display=swap');
+        .font-family-karla { font-family: karla; }
+        .bg-sidebar, .bg-header { background: #b9b9b9; }
+        .cta-btn { color: #b9b9b9; }
+        .active-nav-link { background: #5acca0; }
+        .nav-item:hover { background: #5acca0; }
+        .account-link:hover { background: #b9b9b9; }
+        .account-dropdown {
+            position: absolute;
+            z-index: 2000;
+            background: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 0.5rem;
+            overflow: hidden; /* Hindari elemen yang keluar */
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden; /* Menghilangkan scroll */
+            box-sizing: border-box;
+        }
+        #map {
+            height: 92.5vh; /* Memastikan peta memenuhi seluruh tinggi viewport */
+            width: 100vw; /* Memastikan peta memenuhi seluruh lebar viewport */
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            position: absolute; /* Pastikan peta diatur sesuai tata letak */
+        }
+        .leaflet-marker-fade {
+            transition: opacity 1s ease-out; /* Efek transisi fade-out */
+            opacity: 0; /* Hilangkan elemen */
+        }
+
+        header {
+            height: 48px; /* Kurangi tinggi header (default: 64px) */
+        }
+        
+        aside {
+            width: 48px; /* Kurangi lebar sidebar (default: 64px) */
+        }
+        
+    </style>
+
+    <!-- AlpineJS -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="L.Control.Sidebar.css" />
+    <link rel="stylesheet" href="L.Control.MousePosition.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css">
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css"/>
+
+    <!-- Jquery -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.14.1/jquery-ui.min.css"> 
+
+
+</head>
+<body class="bg-gray-100 font-family-karla flex" x-data="{ isSidebarOpen: false }">
+
+    <!-- Sidebar -->
+    <aside :class="isSidebarOpen ? 'block' : 'hidden'" class="relative bg-sidebar h-screen w-64 shadow-xl">
+        <div class="p-6">
+            <a href="webgis.html" class="text-black text-3xl font-semibold hover:text-gray-100">DuriGeo</a>
+        </div>
+        <nav class="text-black text-base font-semibold pt-3">
+            <a href="webgis.html" @click="isSidebarOpen = false" class="flex items-center active-nav-link text-black py-4 pl-6 nav-item">
+                <i class="fas fa-house-user mr-3"></i>
+                Home
+            </a>
+            <a href="dashboard.html" @click="isSidebarOpen = false" class="flex items-center text-black opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+                <i class="fas fa-tachometer-alt mr-3"></i>
+                Dashboard
+            </a>
+            <a href="blank.html" @click="isSidebarOpen = false" class="flex items-center text-black opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+                <i class="fas fa-sticky-note mr-3"></i>
+                Blank Page
+            </a>
+            <!-- <a href="tables.html" @click="isSidebarOpen = false" class="flex items-center text-black opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+                <i class="fas fa-table mr-3"></i>
+                Tables
+            </a>
+            <a href="forms.html" @click="isSidebarOpen = false" class="flex items-center text-black opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+                <i class="fas fa-align-left mr-3"></i>
+                Forms
+            </a>
+            <a href="tabs.html" @click="isSidebarOpen = false" class="flex items-center text-black opacity-75 hover:opacity-100 py-4 pl-6 nav-item">
+                <i class="fas fa-tablet-alt mr-3"></i>
+                Tabbed Content
+            </a> -->
+        </nav>
+    </aside>
+
+    <div class="w-full flex flex-col h-screen overflow-y-hidden">
+        <!-- Header -->
+        <header class="bg-header text-black flex items-center justify-center py-4 px-6 relative">
+            <!-- Toggle Sidebar -->
+            <button @click="isSidebarOpen = !isSidebarOpen" class="absolute left-6 text-3xl focus:outline-none">
+                <i x-show="!isSidebarOpen" class="fas fa-bars"></i>
+                <i x-show="isSidebarOpen" class="fas fa-times"></i>
+            </button>
+            <h1 class="text-xl font-semibold">Home</h1>
+            <div x-data="{ isOpen: false }" class="absolute right-6 flex justify-end">
+                <button @click="isOpen = !isOpen" class="relative z-10 w-12 h-12 rounded-full overflow-hidden border-4 border-gray-400 hover:border-gray-300 focus:border-gray-300 focus:outline-none">
+                    <img src="profile.png">
+                </button>
+                <button x-show="isOpen" @click="isOpen = false" class="h-full w-full fixed inset-0 cursor-default"></button>
+                <div x-show="isOpen" class="account-dropdown py-2 mt-16">
+                    <a href="#" class="block px-4 py-2 text-gray-800 account-link hover:bg-blue-500 hover:text-white">Account</a>
+                    <a href="#" class="block px-4 py-2 text-gray-800 account-link hover:bg-blue-500 hover:text-white">Support</a>
+                    <a href="#" class="block px-4 py-2 text-gray-800 account-link hover:bg-blue-500 hover:text-white">Sign Out</a>
+                </div>
+            </div>
+        </header>
+
+        <div class="w-full h-screen overflow-x-hidden border-t flex flex-col">
+            <main>
+                <!-- <h1 class="text-3xl text-black pb-6">Interactive Map</h1> -->
+                <!-- Leaflet Map Container -->
+                <div id="map" class="col-md-12"></div>
+                <div id="sidebar" class ="col-md-3">
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <!-- <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script> -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet-src.js"></script>
+    <script src="L.Control.Sidebar.js"></script>
+    <script src="L.Control.MousePosition.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.14.1/jquery-ui.min.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.js"></script>
+
+
+    <script>
+        var map;
+        var baseLayers;  
+        var overlays;  
+
+        // Initialize the Leaflet map
+        var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        });
+        // Tambahkan layer Label (Nama Tempat)
+        var labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        });
+
+        // Gabungkan kedua layer
+        var map = L.map('map', {
+            attributionControl: false,
+            center: [0, 0],
+            zoom: 23,
+            layers: [satellite, labels], // Gabungkan layer satelit dan label
+            zoomControl: false
+        });
+
+        var GoogleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',{
+            maxZoom: 23,
+            subdomains:['mt0','mt1','mt2','mt3']
+        });
+
+        var googleHybrid = L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}',{
+            maxZoom: 23 // valid values are 'roadmap', 'satellite', 'terrain' and 'hybrid'
+        }); 
+
+        // Add a marker
+        var marker = L.marker([-6.559434, 106.725815]).addTo(map); // Koordinat untuk Bogor
+        marker.bindPopup('<b>Welcome to DuriGeo</b>').openPopup();
+        
+        // Atur posisi peta agar fokus pada marker
+        map.setView([-6.559434, 106.725815], 23); // Zoom level 13
+        
+        // Hapus marker dengan efek fade-out setelah 5 detik
+        setTimeout(function() {
+            // Dapatkan elemen DOM marker
+            var markerElement = marker.getElement();
+        
+            // Tambahkan kelas CSS untuk efek fade-out
+            markerElement.classList.add('leaflet-marker-fade');
+        
+            // Tunggu 1 detik (sesuai durasi animasi fade-out), lalu hapus marker dari peta
+            setTimeout(function() {
+                map.removeLayer(marker);
+            }, 1000); // 1000 ms = 1 detik
+        }, 5000);
+
+        // Tambahkan scale bar
+        L.control.scale({
+            position: 'bottomleft', // Posisi scale bar
+            metric: true, // Gunakan metrik (meter/kilometer)
+            imperial: true // Nonaktifkan imperial (feet/mile)
+         }).addTo(map);
+
+         
+        //SIDEBAR
+        var sidebar = L.control.sidebar('sidebar', {
+            position: 'left'
+        }).addTo(map);
+
+        //EasyButton
+        L.easyButton('fa-info-circle', function(){
+            sidebar.toggle();
+        }).addTo(map);
+
+        L.easyButton('fa-camera', function(){
+            sidebar.toggle();
+        }).addTo(map);
+
+        //MousePosition
+        L.control.mousePosition({position:'bottomright'}).addTo(map);
+
+        //Geoman
+        // add Leaflet-Geoman controls with some options to the map  
+        map.pm.addControls({  
+        position: 'topleft',  
+        drawCircleMarker: false,
+        rotateMode: false,
+        dragMode: false,
+        }); 
+
+        map.on("pm:create", function(e) {
+            console.log(e);
+        });
+
+        //Layer Control
+
+        var baseLayers = {
+            "Esri Map": L.layerGroup([satellite, labels]),
+            'Google Hybrid': googleHybrid,
+            "Google Streets": GoogleStreets,
+        };
+
+        var control_layers = L.control.layers(baseLayers,overlays).addTo(map);   
+
+
+    </script>
+    
+</body>
+</html>
